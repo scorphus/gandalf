@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"mime"
 	"net/http"
 	"path/filepath"
@@ -82,6 +83,7 @@ func SetupRouter() *pat.Router {
 }
 
 func grantAccess(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.grantAccess\n", r.Method, r.URL)
 	repositories, users, err := accessParameters(r.Body)
 	readOnly := r.URL.Query().Get("readonly") == "yes"
 	if err != nil {
@@ -100,6 +102,7 @@ func grantAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 func revokeAccess(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.revokeAccess\n", r.Method, r.URL)
 	repositories, users, err := accessParameters(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -117,6 +120,7 @@ func revokeAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 func addKey(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.addKey\n", r.Method, r.URL)
 	keys := map[string]string{}
 	if err := parseBody(r.Body, &keys); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -144,6 +148,7 @@ func addKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeKey(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.removeKey\n", r.Method, r.URL)
 	uName := r.URL.Query().Get(":name")
 	kName := r.URL.Query().Get(":keyname")
 	if err := user.RemoveKey(uName, kName); err != nil {
@@ -154,6 +159,7 @@ func removeKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func listKeys(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.listKeys\n", r.Method, r.URL)
 	uName := r.URL.Query().Get(":name")
 	keys, err := user.ListKeys(uName)
 	if err != nil {
@@ -174,6 +180,7 @@ type jsonUser struct {
 }
 
 func newUser(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.newUser\n", r.Method, r.URL)
 	var usr jsonUser
 	if err := parseBody(r.Body, &usr); err != nil {
 		http.Error(w, "Got error while parsing body: "+err.Error(), http.StatusBadRequest)
@@ -188,6 +195,7 @@ func newUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeUser(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.removeUser\n", r.Method, r.URL)
 	name := r.URL.Query().Get(":name")
 	if err := user.Remove(name); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -197,6 +205,7 @@ func removeUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func newRepository(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.newRepository\n", r.Method, r.URL)
 	var repo repository.Repository
 	if err := parseBody(r.Body, &repo); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -211,6 +220,7 @@ func newRepository(w http.ResponseWriter, r *http.Request) {
 }
 
 func getRepository(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.getRepository\n", r.Method, r.URL)
 	repo, err := repository.Get(r.URL.Query().Get(":name"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -225,6 +235,7 @@ func getRepository(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeRepository(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.removeRepository\n", r.Method, r.URL)
 	name := r.URL.Query().Get(":name")
 	if err := repository.Remove(name); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -234,6 +245,7 @@ func removeRepository(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateRepository(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.updateRepository\n", r.Method, r.URL)
 	name := r.URL.Query().Get(":name")
 	repo, err := repository.Get(name)
 	if err != nil {
@@ -259,6 +271,7 @@ type repositoryHook struct {
 }
 
 func addHook(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.addHook\n", r.Method, r.URL)
 	name := r.URL.Query().Get(":name")
 	if name != "post-receive" && name != "pre-receive" && name != "update" {
 		http.Error(w,
@@ -308,6 +321,7 @@ func parseBody(body io.ReadCloser, result interface{}) error {
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.healthCheck\n", r.Method, r.URL)
 	conn, err := db.Conn()
 	if err != nil {
 		return
@@ -331,6 +345,7 @@ func getMimeType(path string, content []byte) string {
 }
 
 func getFileContents(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.getFileContents\n", r.Method, r.URL)
 	repo := r.URL.Query().Get(":name")
 	path := r.URL.Query().Get("path")
 	ref := r.URL.Query().Get("ref")
@@ -353,6 +368,7 @@ func getFileContents(w http.ResponseWriter, r *http.Request) {
 }
 
 func getArchive(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.getArchive\n", r.Method, r.URL)
 	repo := r.URL.Query().Get(":name")
 	ref := r.URL.Query().Get("ref")
 	format := r.URL.Query().Get("format")
@@ -372,6 +388,7 @@ func getArchive(w http.ResponseWriter, r *http.Request) {
 	}
 	contents, err := repository.GetArchive(repo, ref, archiveFormat)
 	if err != nil {
+		log.Printf("%s %s handled by api.getArchive, error: %s\n", r.Method, r.URL, err.Error())
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -389,6 +406,7 @@ func getArchive(w http.ResponseWriter, r *http.Request) {
 }
 
 func getTree(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.getTree\n", r.Method, r.URL)
 	repo := r.URL.Query().Get(":name")
 	path := r.URL.Query().Get("path")
 	ref := r.URL.Query().Get("ref")
@@ -414,6 +432,7 @@ func getTree(w http.ResponseWriter, r *http.Request) {
 }
 
 func getBranches(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.getBranches\n", r.Method, r.URL)
 	repo := r.URL.Query().Get(":name")
 	branches, err := repository.GetBranches(repo)
 	if err != nil {
@@ -431,6 +450,7 @@ func getBranches(w http.ResponseWriter, r *http.Request) {
 }
 
 func getTags(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.getTags\n", r.Method, r.URL)
 	repo := r.URL.Query().Get(":name")
 	ref := r.URL.Query().Get("ref")
 	tags, err := repository.GetTags(repo)
@@ -449,6 +469,7 @@ func getTags(w http.ResponseWriter, r *http.Request) {
 }
 
 func getDiff(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.getDiff\n", r.Method, r.URL)
 	repo := r.URL.Query().Get(":name")
 	previousCommit := r.URL.Query().Get("previous_commit")
 	lastCommit := r.URL.Query().Get("last_commit")
@@ -467,6 +488,7 @@ func getDiff(w http.ResponseWriter, r *http.Request) {
 }
 
 func commit(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.commit\n", r.Method, r.URL)
 	repo := r.URL.Query().Get(":name")
 	err := r.ParseMultipartForm(int64(maxMemoryValue()))
 	if err != nil {
@@ -515,6 +537,7 @@ func commit(w http.ResponseWriter, r *http.Request) {
 }
 
 func getLogs(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s handled by api.getLog\n", r.Method, r.URL)
 	repo := r.URL.Query().Get(":name")
 	ref := r.URL.Query().Get("ref")
 	path := r.URL.Query().Get("path")
