@@ -392,16 +392,12 @@ func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistInDat
 func (s *S) TestUpdate(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
 	r, err := New("freedom", []string{"c"}, []string{"d"}, false)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
 	defer conn.Repository().RemoveId(r.Name)
-	c.Check(err, gocheck.IsNil)
-	commandmocker.Remove(tmpdir)
-	rfs := &fstesting.RecordingFs{}
-	fs.Fsystem = rfs
-	defer func() { fs.Fsystem = nil }()
 	expected := Repository{
 		Name:          "freedom",
 		Users:         []string{"a", "b"},
@@ -418,13 +414,12 @@ func (s *S) TestUpdate(c *gocheck.C) {
 func (s *S) TestUpdateWithRenaming(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
 	r, err := New("freedom", []string{"c"}, []string{"d"}, false)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
 	defer conn.Repository().RemoveId(r.Name)
-	c.Check(err, gocheck.IsNil)
-	commandmocker.Remove(tmpdir)
 	rfs := &fstesting.RecordingFs{}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
@@ -441,6 +436,36 @@ func (s *S) TestUpdateWithRenaming(c *gocheck.C) {
 	repo, err = Get("freedom2")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(repo, gocheck.DeepEquals, expected)
+	oldPath := path.Join(bareLocation(), "freedom.git")
+	newPath := path.Join(bareLocation(), "freedom2.git")
+	action := fmt.Sprintf("rename %s %s", oldPath, newPath)
+	c.Assert(rfs.HasAction(action), gocheck.Equals, true)
+}
+
+func (s *S) TestUpdateErrsWithAlreadyExists(c *gocheck.C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r1, err := New("freedom", []string{"free"}, []string{}, false)
+	c.Assert(err, gocheck.IsNil)
+	r2, err := New("subjection", []string{"subdued"}, []string{}, false)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r1.Name)
+	defer conn.Repository().RemoveId(r2.Name)
+	update := Repository{
+		Name: "subjection",
+	}
+	err = Update(r1.Name, update)
+	c.Assert(err, gocheck.ErrorMatches, "^insertDocument :: caused by :: 11000 E11000 duplicate key error .+$")
+}
+
+func (s *S) TestUpdateErrsWhenNotFound(c *gocheck.C) {
+	update := Repository{}
+	err := Update("nonexistent", update)
+	c.Assert(err, gocheck.ErrorMatches, "not found")
+
 }
 
 func (s *S) TestReadOnlyURL(c *gocheck.C) {

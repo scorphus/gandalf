@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 
@@ -210,20 +209,7 @@ func Update(name string, newData Repository) error {
 			log.Errorf("repository.Rename: Error renaming old repository in filesystem %q: %s", oldName, err)
 		}
 	} else {
-		d := bson.M{}
-		if !reflect.DeepEqual(newData.Users, repo.Users) {
-			d["users"] = newData.Users
-		}
-		if !reflect.DeepEqual(newData.ReadOnlyUsers, repo.ReadOnlyUsers) {
-			d["readonlyusers"] = newData.ReadOnlyUsers
-		}
-		if !reflect.DeepEqual(newData.IsPublic, repo.IsPublic) {
-			d["ispublic"] = newData.IsPublic
-		}
-		if len(d) == 0 {
-			return nil
-		}
-		err = conn.Repository().UpdateId(repo.Name, bson.M{"$set": d})
+		err = conn.Repository().UpdateId(repo.Name, newData)
 		if err != nil {
 			log.Errorf("repository.Update: Error updating repository data %q: %s", repo.Name, err)
 			return err

@@ -322,6 +322,24 @@ func (s *S) TestParseBodyShouldMapBodyEmptyJsonToADict(c *gocheck.C) {
 	c.Assert(dict, gocheck.DeepEquals, expected)
 }
 
+func (s *S) TestParseBodyShouldMapBodyJsonAndUpdateMap(c *gocheck.C) {
+	dict := map[string]interface{}{
+		"isPublic":      false,
+		"users":         []string{"merry"},
+		"readonlyusers": []string{"pippin"},
+	}
+	b := bufferCloser{bytes.NewBufferString(`{"name": "Test", "users": []}`)}
+	err := parseBody(b, &dict)
+	c.Assert(err, gocheck.IsNil)
+	expected := map[string]interface{}{
+		"name":          "Test",
+		"isPublic":      false,
+		"users":         []interface{}{},
+		"readonlyusers": []string{"pippin"},
+	}
+	c.Assert(dict, gocheck.DeepEquals, expected)
+}
+
 func (s *S) TestParseBodyShouldReturnErrorWhenJsonIsInvalid(c *gocheck.C) {
 	var p repository.Repository
 	b := bufferCloser{bytes.NewBufferString("{]ja9aW}")}
@@ -902,6 +920,12 @@ func (s *S) TestRemoveRepositoryShouldReturnErrorMsgWhenRepoDoesNotExist(c *goch
 }
 
 func (s *S) TestUpdateRespositoryShouldReturnErrorWhenBodyIsEmpty(c *gocheck.C) {
+	r, err := repository.New("something", []string{"guardian@what.com"}, []string{""}, true)
+	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r.Name)
 	b := strings.NewReader("")
 	recorder, request := put("/repository/something", b, c)
 	s.router.ServeHTTP(recorder, request)
@@ -911,6 +935,10 @@ func (s *S) TestUpdateRespositoryShouldReturnErrorWhenBodyIsEmpty(c *gocheck.C) 
 func (s *S) TestUpdateRepositoryData(c *gocheck.C) {
 	r, err := repository.New("something", []string{"guardian@what.com"}, []string{""}, true)
 	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r.Name)
 	url := fmt.Sprintf("/repository/%s", r.Name)
 	body := strings.NewReader(`{"users": ["b"], "readonlyusers": ["a"], "ispublic": false}`)
 	request, err := http.NewRequest("PUT", url, body)
@@ -921,6 +949,28 @@ func (s *S) TestUpdateRepositoryData(c *gocheck.C) {
 	r.Users = []string{"b"}
 	r.ReadOnlyUsers = []string{"a"}
 	r.IsPublic = false
+	repo, err := repository.Get("something")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(repo, gocheck.DeepEquals, *r)
+}
+
+func (s *S) TestUpdateRepositoryDataPartial(c *gocheck.C) {
+	r, err := repository.New("something", []string{"pippin"}, []string{"merry"}, true)
+	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r.Name)
+	url := fmt.Sprintf("/repository/%s", r.Name)
+	body := strings.NewReader(`{"readonlyusers": ["a", "b"]}`)
+	request, err := http.NewRequest("PUT", url, body)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	r.Users = []string{"pippin"}
+	r.ReadOnlyUsers = []string{"a", "b"}
+	r.IsPublic = true
 	repo, err := repository.Get("something")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(repo, gocheck.DeepEquals, *r)
@@ -937,7 +987,12 @@ func (s *S) TestUpdateRepositoryNotFound(c *gocheck.C) {
 }
 
 func (s *S) TestUpdateRepositoryInvalidJSON(c *gocheck.C) {
-	_, err := repository.New("bar", []string{"guardian@what.com"}, []string{""}, true)
+	r, err := repository.New("bar", []string{"guardian@what.com"}, []string{""}, true)
+	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r.Name)
 	url := "/repository/bar"
 	body := strings.NewReader(`{"name""`)
 	request, err := http.NewRequest("PUT", url, body)
@@ -950,6 +1005,10 @@ func (s *S) TestUpdateRepositoryInvalidJSON(c *gocheck.C) {
 func (s *S) TestRenameRepositoryWithNamespace(c *gocheck.C) {
 	r, err := repository.New("lift/raising", []string{"guardian@what.com"}, []string{}, true)
 	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r.Name)
 	url := fmt.Sprintf("/repository/%s/", r.Name)
 	body := strings.NewReader(`{"name":"norestraint/freedom"}`)
 	request, err := http.NewRequest("PUT", url, body)
