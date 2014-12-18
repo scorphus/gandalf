@@ -324,6 +324,8 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s handled by api.healthCheck\n", r.Method, r.URL)
 	conn, err := db.Conn()
 	if err != nil {
+		e := fmt.Sprintf("ERROR: %s", err.Error())
+		w.Write([]byte(e))
 		return
 	}
 	defer conn.Close()
