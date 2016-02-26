@@ -12,7 +12,7 @@ Gandalf also uses mongodb, on ubuntu run:
 
     $ [sudo] apt-get install mongodb
 
-Get gandalf:
+Get Gandalf:
 
 .. highlight:: bash
 
@@ -20,10 +20,12 @@ Get gandalf:
 
     $ go get github.com/tsuru/gandalf/...
 
-Gandalf will come with a default configuration file, at etc/gandalf.conf, customize it with your needs before running the install script.
+Gandalf will come with a default configuration file, at `etc/gandalf.conf`,
+customize it with your needs before running the install script.
 
-The script will build and run gandalf server with the current user, so if you want your
-repositories urls to be like `git@host.com` you should create a user called git and change to it before running the script.
+The script will build and run Gandalf server with the current user, so if you
+want your repositories URLs to be like `git@host.com` you should create a user
+called `git` and change to it before running the script.
 
 So let's run it:
 
@@ -36,7 +38,7 @@ So let's run it:
 
 No output means no error :)
 
-Now test if gandalf server is up and running
+Now test if Gandalf server is up and running:
 
 .. highlight:: bash
 
@@ -44,7 +46,7 @@ Now test if gandalf server is up and running
 
     $ ps -ef | grep gandalf
 
-This should output something like the following
+This should output something like the following:
 
 .. highlight:: bash
 
